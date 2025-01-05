@@ -1,4 +1,119 @@
+### **Cwiczenie 3:**
 
+### **Variables:**
+Add variables:
+```cpp
+bool collaboration_in_progress = false;
+bool negotiation_active = false;
+float negotiation_ratio = 50.0f;  // Default 50-50 split
+int negotiation_partner_ID = -1;
+float fuel_price = 0.0f;
+```
+
+---
+
+### **Method 1: Start Collaboration Request**
+This method initiates collaboration by sending a request to another participant.
+```cpp
+void SendCollaborationRequest(int receiver_ID) {
+    Frame frame;
+    frame.frame_type = TRANSFER;
+    frame.iID_receiver = receiver_ID;
+    frame.transfer_type = MONEY;
+    frame.transfer_value = 0;  // Placeholder for initial offer
+    frame.iID = my_vehicle->iID;
+
+    multi_send->send((char*)&frame, sizeof(Frame));
+    sprintf(par_view.inscription2, "Wysłano zaproszenie do współpracy (ID %d)", receiver_ID);
+}
+```
+
+---
+
+### **Method 2: Respond to Collaboration Request**
+Handles incoming collaboration requests and allows the user to accept or reject them.
+```cpp
+void RespondToCollaboration(bool accept, int partner_ID) {
+    if (accept) {
+        collaboration_in_progress = true;
+        negotiation_partner_ID = partner_ID;
+        sprintf(par_view.inscription2, "Współpraca nawiązana z ID %d", partner_ID);
+    } else {
+        sprintf(par_view.inscription2, "Odrzucono współpracę z ID %d", partner_ID);
+    }
+}
+```
+
+---
+
+### **Method 3: Negotiation for Profit/Fuel Split**
+Negotiation to determine the percentage split of resources (e.g., fuel or money).
+```cpp
+void StartNegotiation(int partner_ID) {
+    negotiation_active = true;
+    negotiation_partner_ID = partner_ID;
+    negotiation_ratio = 50.0f;  // Start at 50-50 split
+    sprintf(par_view.inscription2, "Rozpoczęto negocjacje z ID %d", partner_ID);
+}
+
+void AdjustNegotiation(float new_ratio) {
+    negotiation_ratio = new_ratio;
+    sprintf(par_view.inscription2, "Proponowany podział: %.1f%% dla ID %d", negotiation_ratio, negotiation_partner_ID);
+}
+
+void ConfirmNegotiation() {
+    negotiation_active = false;
+    TransferSending(negotiation_partner_ID, MONEY, my_vehicle->state.money * (negotiation_ratio / 100));
+    sprintf(par_view.inscription2, "Potwierdzono podział: %.1f%%", negotiation_ratio);
+}
+```
+
+---
+
+### **Method 4: Auction for Fuel (Basic Implementation)**
+```cpp
+void StartFuelAuction(float starting_price) {
+    fuel_price = starting_price;
+    sprintf(par_view.inscription2, "Rozpoczęto licytację paliwa. Cena: %.2f", fuel_price);
+}
+
+void PlaceBid(float bid) {
+    if (bid > fuel_price) {
+        fuel_price = bid;
+        sprintf(par_view.inscription2, "Nowa oferta: %.2f", fuel_price);
+    } else {
+        sprintf(par_view.inscription2, "Oferta za niska. Aktualna cena: %.2f", fuel_price);
+    }
+}
+
+void FinalizeAuction(int winner_ID) {
+    TransferSending(winner_ID, FUEL, 10);  // Transfer 10 units of fuel
+    sprintf(par_view.inscription2, "Zakończono licytację. ID %d wygrywa za %.2f", winner_ID, fuel_price);
+}
+```
+
+---
+
+### **Method 5: Message Box Prompt (Optional)**
+```cpp
+void ShowNegotiationPrompt(int sender_ID) {
+    int result = MessageBox(main_window, "Czy chcesz podjąć współpracę?", "Zaproszenie", MB_YESNO);
+    RespondToCollaboration(result == IDYES, sender_ID);
+}
+```
+
+---
+
+### **Implementation Notes:**
+- **Triggers:**  
+  - Collaboration starts when a request is received.  
+  - Negotiations adjust values dynamically until confirmed by both parties.  
+  - Auctions run with time limits or until a user accepts the highest bid.  
+
+- **Synchronization:**  
+  Use the existing **critical section (`EnterCriticalSection`)** to ensure thread safety during network communications and negotiation processes.  
+
+Would you like to integrate these directly into the existing message-handling loop or as callable functions from keyboard inputs?
 
 ### Client Application
 
